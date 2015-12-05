@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-     Copyright (C) 2016 The LiquidSmooth Project
+     Copyright (C) 2015 The CyanogenMod Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -14,19 +14,6 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources>
-
-   <!-- Last app switch animations -->
-  <java-symbol type="anim" name="last_app_in" />
-  <java-symbol type="anim" name="last_app_out" />
-  
-   <!-- Hardware key binding -->
-  <java-symbol type="integer" name="config_deviceHardwareKeys" />
-
-  <java-symbol type="bool" name="config_enableScreenrecordChord" />
-
-  <!-- Power menu -->
-  <java-symbol type="drawable" name="ic_lock_screenrecord" />
-  <java-symbol type="string" name="global_action_screenrecord" />
-
-</resources>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_lock_screenrecord_alpha"
+    android:tint="?attr/colorControlNormal" />
