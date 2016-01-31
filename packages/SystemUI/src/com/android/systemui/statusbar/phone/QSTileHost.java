@@ -60,6 +60,7 @@ import com.android.systemui.qs.tiles.NfcTile;
 import com.android.systemui.qs.tiles.PerfProfileTile;
 import com.android.systemui.qs.tiles.ProfilesTile;
 import com.android.systemui.qs.tiles.RotationLockTile;
+import com.android.systemui.qs.tiles.ThemesTile;
 import com.android.systemui.qs.tiles.ScreenTimeoutTile;
 import com.android.systemui.qs.tiles.SyncTile;
 import com.android.systemui.qs.tiles.UsbTetherTile;
@@ -371,6 +372,7 @@ public class QSTileHost implements QSTile.Host, Tunable {
         else if (tileSpec.equals("heads_up")) return new HeadsUpTile(this);
         else if (tileSpec.equals("battery_saver")) return new BatterySaverTile(this);
         else if (tileSpec.equals("caffeine")) return new CaffeineTile(this);
+        else if (tileSpec.equals("themes")) return new ThemesTile(this);
         else if (tileSpec.startsWith(IntentTile.PREFIX)) return IntentTile.create(this,tileSpec);
         else if (TextUtils.split(tileSpec, "\\|").length == 3) {
             /** restores placeholder for
