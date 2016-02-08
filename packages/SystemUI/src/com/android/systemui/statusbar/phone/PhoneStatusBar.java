@@ -134,6 +134,7 @@ import com.android.systemui.doze.DozeLog;
 import com.android.systemui.keyguard.KeyguardViewMediator;
 import com.android.systemui.qs.QSDragPanel;
 import com.android.systemui.omni.StatusBarHeaderMachine;
+import com.android.systemui.qs.QSDetailItemsList;
 import com.android.systemui.recents.ScreenPinningRequest;
 import com.android.systemui.statusbar.ActivatableNotificationView;
 import com.android.systemui.statusbar.BackDropView;
@@ -3913,8 +3914,16 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
             }
         }
 
-        // AdapterView does not support removeAllViews so check before calling
-        if (!(parent instanceof AdapterView)) parent.removeAllViews();
+        if (parent instanceof AdapterView) {
+            //We know that when it's AdapterView it's from CM's QS detail items list
+            QSDetailItemsList.QSDetailListAdapter adapter =
+                    (QSDetailItemsList.QSDetailListAdapter) ((AdapterView) parent).getAdapter();
+
+            adapter.clear();
+            adapter.notifyDataSetInvalidated();
+        } else {
+            parent.removeAllViews();
+        }
     }
 
     /**
