@@ -92,4 +92,5 @@ interface IStatusBarService
 
     void startAssist(in Bundle args);
     void showCustomIntentAfterKeyguard(inout Intent intent);
+    void screenPinningStateChanged(boolean enabled);
 }

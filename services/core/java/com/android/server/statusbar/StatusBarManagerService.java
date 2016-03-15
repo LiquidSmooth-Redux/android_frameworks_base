@@ -558,6 +558,22 @@ public class StatusBarManagerService extends IStatusBarService.Stub {
     }
 
     /**
+     * Let systemui know screen pinning state change. This is independent of the
+     * showScreenPinningRequest() call as it does not reflect state
+     *
+     * @hide
+     */
+    @Override
+    public void screenPinningStateChanged(boolean enabled) {
+        if (mBar != null) {
+            try {
+                mBar.screenPinningStateChanged(enabled);
+            } catch (RemoteException ex) {
+            }
+        }
+    }
+
+    /**
      * Ask keyguard to invoke a custom intent after dismissing keyguard
      * @hide
      */

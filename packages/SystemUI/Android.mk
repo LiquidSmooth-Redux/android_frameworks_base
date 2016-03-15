@@ -6,13 +6,17 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := $(call all-java-files-under, src) \
     src/com/android/systemui/EventLogTags.logtags
 
+LOCAL_SRC_FILES += $(call all-java-files-under, ../../../../packages/apps/DUI/src)
+
 LOCAL_STATIC_JAVA_LIBRARIES := Keyguard \
     org.cyanogenmod.platform.internal \
     android-support-v7-palette \
     android-support-v4 \
-    uicommon
+    uicommon \
+    trail-drawing \
+    rebound
 
-LOCAL_JAVA_LIBRARIES := telephony-common
+LOCAL_JAVA_LIBRARIES := telephony-common org.dirtyunicorns.utils
 LOCAL_FULL_LIBS_MANIFEST_FILES := $(LOCAL_PATH)/AndroidManifest_cm.xml
 
 LOCAL_PACKAGE_NAME := SystemUI
@@ -23,7 +27,9 @@ LOCAL_PROGUARD_FLAG_FILES := proguard.flags
 
 LOCAL_RESOURCE_DIR := \
     frameworks/base/packages/Keyguard/res \
-    $(LOCAL_PATH)/res
+    $(LOCAL_PATH)/res \
+    packages/apps/DUI/res
+
 LOCAL_AAPT_FLAGS := --auto-add-overlay --extra-packages com.android.keyguard
 
 ifneq ($(SYSTEM_UI_INCREMENTAL_BUILDS),)
