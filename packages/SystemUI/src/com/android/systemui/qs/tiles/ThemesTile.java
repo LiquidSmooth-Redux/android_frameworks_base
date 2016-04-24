@@ -22,21 +22,17 @@ import android.app.ActivityManagerNative;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.content.res.ThemeChangeRequest;
-import android.content.res.ThemeChangeRequest.RequestType;
 import android.content.res.ThemeConfig;
-import android.content.res.ThemeManager;
 import android.database.Cursor;
 import android.os.RemoteException;
-import android.provider.ThemesContract;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
-import com.android.internal.logging.MetricsLogger;
 import com.android.systemui.R;
 import com.android.systemui.qs.QSDetailItems.Item;
 import com.android.systemui.qs.QSDetailItemsList;
@@ -44,6 +40,13 @@ import com.android.systemui.qs.QSTile;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import cyanogenmod.app.StatusBarPanelCustomTile;
+import cyanogenmod.providers.ThemesContract;
+import cyanogenmod.themes.ThemeChangeRequest;
+import cyanogenmod.themes.ThemeManager;
+
+import org.cyanogenmod.internal.logging.CMMetricsLogger;
 
 /**
  * Quick settings tile: Themes mode
@@ -56,13 +59,14 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
     private final ThemesDetailAdapter mDetailAdapter;
     private ThemeManager mService;
     private Mode mode;
+    private String mTopAppLabel;
 
     public ThemesTile(Host host) {
         super(host);
         mDetailAdapter = new ThemesDetailAdapter();
-        mService = (ThemeManager) getHost().getContext().getSystemService(Context.THEME_SERVICE);
+        mService = ThemeManager.getInstance(getHost().getContext());
         mState.value = true;
-        mService.addClient(this);
+        mService.registerThemeChangeListener(this);
         // Log.d("ThemesTile", "new");
     }
 
@@ -75,7 +79,7 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
     protected void handleDestroy() {
         // Log.d("ThemesTile", "destroy");
         super.handleDestroy();
-        mService.removeClient(this);
+        mService.unregisterThemeChangeListener(this);
     }
 
     @Override
@@ -99,6 +103,7 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
             mode = Mode.ICON_PACK;
         } else {
             mode = Mode.APP_THEME;
+            mTopAppLabel = getTopAppLabel(getTopActivity());
         }
 
         showDetail(true);
@@ -113,7 +118,7 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
 
     @Override
     public int getMetricsCategory() {
-        return MetricsLogger.DISPLAY;
+        return CMMetricsLogger.TILE_THEMES;
     }
 
     @Override
@@ -129,7 +134,7 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
         }
     }
 
-    private final class ThemesDetailAdapter implements DetailAdapter,
+    private final class ThemesDetailAdapter implements CustomTitleDetailAdapter,
             AdapterView.OnItemClickListener {
 
         private QSDetailItemsList mItemsList;
@@ -144,10 +149,27 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
                 case ICON_PACK:
                     return R.string.quick_settings_themes_icon_packs;
                 case APP_THEME:
-                    return R.string.quick_settings_themes_app_theme;
+                    return USES_CUSTOM_DETAIL_ADAPTER_TITLE;
                 default:
-                    return -1;
+                    return R.string.quick_settings_themes;
             }
+        }
+
+        @Override
+        public String getCustomTitle() {
+            switch (mode) {
+                case APP_THEME:
+                    final String topAppLabel = mTopAppLabel;
+                    return mContext.getString(
+                            R.string.quick_settings_themes_app_theme_with_label, topAppLabel);
+                default:
+                    return mContext.getString(R.string.quick_settings_themes_app_theme);
+            }
+        }
+
+        @Override
+        public StatusBarPanelCustomTile getCustomTile() {
+            return null;
         }
 
         @Override
@@ -171,10 +193,6 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
         private void updateItems() {
 
             if (mItemsList == null) return;
-
-            if (isTopActivityLauncher()) {
-                // Log.d("ThemesTile", "This is launcher");
-            }
 
             items.clear();
 
@@ -214,13 +232,17 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
 
         @Override
         public int getMetricsCategory() {
-            return MetricsLogger.DISPLAY;
+            return CMMetricsLogger.TILE_THEMES;
         }
 
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
             Item selectedItem = (Item) parent.getItemAtPosition(position);
+
+            if (selectedItem.icon == R.drawable.ic_qs_themes_on){
+                return;
+            }
 
             String pkg = (String) selectedItem.tag;
 
@@ -391,8 +413,12 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
 
             List<Item> itemList = new ArrayList<>();
 
+            // sort in ascending order but make sure the "default" theme is always first
+            String sortOrder = "(" + ThemesContract.ThemesColumns.IS_DEFAULT_THEME + "=1) DESC, "
+                    + ThemesContract.ThemesColumns.TITLE + " ASC";
+
             Cursor c = getHost().getContext().getContentResolver()
-                    .query(ThemesContract.ThemesColumns.CONTENT_URI, null, filter, null, null);
+                    .query(ThemesContract.ThemesColumns.CONTENT_URI, null, filter, null, sortOrder);
 
             while (c.moveToNext()) {
 
@@ -412,7 +438,6 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
             return itemList;
 
         }
-
     }
 
 
@@ -429,6 +454,18 @@ public class ThemesTile extends QSTile<QSTile.BooleanState> implements ThemeMana
 
     private String getTopApp() {
         return getTopActivity().getPackageName();
+    }
+
+    private String getTopAppLabel(ComponentName componentName) {
+        String label = null;
+        PackageManager pm = mContext.getPackageManager();
+        try {
+            ApplicationInfo info = pm.getApplicationInfo(componentName.getPackageName(), 0);
+            label = info.loadLabel(pm).toString();
+        } catch (Exception e) {
+            label = mContext.getString(R.string.quick_settings_themes_app_theme);
+        }
+        return label;
     }
 
     private boolean isActivityLauncher(ComponentName componentName) {
